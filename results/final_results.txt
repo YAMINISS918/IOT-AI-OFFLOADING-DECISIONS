@@ -1,0 +1,14 @@
+Project Name:
+AI-Based Intelligent IoT Task Offloading
+
+Dataset:
+3000 Samples
+
+LSTM Model:
+Completed
+
+Feedforward Classifier:
+Completed
+
+Status:
+System Working Successfully

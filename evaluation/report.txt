@@ -1,0 +1,11 @@
+Evaluation Metrics
+
+✓ Dataset Loaded
+✓ Preprocessing Completed
+✓ LSTM Trained
+✓ Classifier Trained
+✓ Models Saved Successfully
+
+Future Work:
+Compare with Threshold Method
+Generate Accuracy Graphs
