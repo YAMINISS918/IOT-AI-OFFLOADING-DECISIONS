@@ -4,6 +4,8 @@ import pandas as pd
 
 from streamlit_autorefresh import st_autorefresh
 from realtime_monitor import get_realtime_data
+from cctv_offloading_manager import process_cctv_system
+from resource_monitor import get_edge_resources
 
 
 # ============================================================
@@ -64,7 +66,8 @@ mode = st.sidebar.radio(
     "Select Input Mode",
     [
         "Real-Time Monitoring",
-        "Manual IoT Input"
+        "Manual IoT Input",
+        "CCTV Monitoring"
     ]
 )
 
@@ -896,7 +899,7 @@ if mode == "Real-Time Monitoring":
 # MANUAL MODE
 # ============================================================
 
-else:
+elif mode == "Manual IoT Input":
 
     st.header(
         "🎛️ Manual IoT Device Input"
@@ -1078,6 +1081,94 @@ else:
 
         except Exception as e:
             st.error(f"❌ Prediction API Error: {e}")
+
+
+
+elif mode == "CCTV Monitoring":
+
+    st.header("📹 Intelligent CCTV Offloading")
+    st.write("Monitor CCTV tasks and view Edge/Cloud recommendations.")
+
+    if "cctv_running" not in st.session_state:
+        st.session_state.cctv_running = False
+    if "cctv_history" not in st.session_state:
+        st.session_state.cctv_history = []
+    if "cctv_iteration" not in st.session_state:
+        st.session_state.cctv_iteration = 0
+
+    start_cctv, stop_cctv = st.columns(2)
+    with start_cctv:
+        if st.button("▶ Start CCTV Monitoring", type="primary", use_container_width=True):
+            st.session_state.cctv_running = True
+    with stop_cctv:
+        if st.button("⏹ Stop CCTV Monitoring", use_container_width=True):
+            st.session_state.cctv_running = False
+
+    if st.session_state.cctv_running:
+        st_autorefresh(interval=2000, key="cctv_monitor_refresh")
+        try:
+            result = process_cctv_system()
+            st.session_state.cctv_iteration += 1
+            status = result.get("status", "unknown")
+            latency_value = float(result.get("predicted_latency") or 0)
+            cameras = result.get("camera_results", [])
+
+            a, b, c = st.columns(3)
+            a.metric("System Status", str(status).upper())
+            b.metric("Iteration", st.session_state.cctv_iteration)
+            c.metric("Predicted Future Latency", f"{latency_value:.2f} ms")
+
+            st.subheader("💻 Edge Device Resources")
+            resources = get_edge_resources()
+            r1, r2, r3 = st.columns(3)
+            r1.metric("CPU Usage", f"{float(resources.get('cpu_usage') or 0):.1f}%")
+            r2.metric("RAM Usage", f"{float(resources.get('ram_usage') or 0):.1f}%")
+            storage = resources.get("available_storage_gb", resources.get("available_storage", 0))
+            r3.metric("Available Storage", f"{float(storage or 0):.2f} GB")
+
+            if status == "collecting_data":
+                collected = int(result.get("records_collected", 0) or 0)
+                required = int(result.get("records_needed", 10) or 10)
+                st.warning(f"Collecting network history: {collected}/{required}")
+                st.progress(min(collected / required, 1.0) if required else 0)
+            elif cameras:
+                rows, edge_count, cloud_count = [], 0, 0
+                for camera in cameras:
+                    decision = str(camera.get("decision", "UNKNOWN")).upper()
+                    edge_count += decision == "EDGE"
+                    cloud_count += decision == "CLOUD"
+                    rows.append({
+                        "Camera ID": camera.get("camera_id", "Unknown"),
+                        "Location": camera.get("location", "Unknown"),
+                        "Priority": camera.get("priority", "Unknown"),
+                        "Execution Decision": decision
+                    })
+                st.subheader("📋 CCTV Offloading Decisions")
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+                x, y, z = st.columns(3)
+                x.metric("🖥️ EDGE Tasks", edge_count)
+                y.metric("☁️ CLOUD Tasks", cloud_count)
+                z.metric("📹 Total CCTV Tasks", edge_count + cloud_count)
+                st.session_state.cctv_history.append({
+                    "Iteration": st.session_state.cctv_iteration,
+                    "Predicted Latency": latency_value,
+                    "EDGE Tasks": edge_count,
+                    "CLOUD Tasks": cloud_count
+                })
+                st.session_state.cctv_history = st.session_state.cctv_history[-100:]
+            else:
+                st.info("Waiting for CCTV offloading decisions.")
+
+            if len(st.session_state.cctv_history) > 1:
+                hist = pd.DataFrame(st.session_state.cctv_history).set_index("Iteration")
+                st.subheader("📈 CCTV Latency History")
+                st.line_chart(hist["Predicted Latency"])
+                st.subheader("📊 Edge vs Cloud CCTV Tasks")
+                st.bar_chart(hist[["EDGE Tasks", "CLOUD Tasks"]])
+        except Exception as e:
+            st.error(f"CCTV monitoring error: {e}")
+    else:
+        st.info("CCTV monitoring is stopped. Click Start CCTV Monitoring to begin.")
 
 
 
