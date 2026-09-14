@@ -1,0 +1,4 @@
+Scenario,Rows_Evaluated,Existing_Mean_Latency_ms,Proposed_Mean_Latency_ms,Estimated_Improvement_percent
+Congested,1000,2359.770757491256,2359.770757491256,0.0
+Fluctuating,1000,845.160986930693,858.4566152008846,-1.573147421117526
+Stable,991,651.240766902119,651.240766902119,0.0
