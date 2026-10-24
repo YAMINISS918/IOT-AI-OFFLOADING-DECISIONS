@@ -20,7 +20,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-API_DEFAULT = "http://127.0.0.1:8000"
+API_DEFAULT = "https://iot-ai-offloading-decision-making-api.onrender.com"
 REFRESH_MS = 2000
 MAX_HISTORY = 150
 
